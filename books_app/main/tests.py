@@ -4,7 +4,7 @@ import unittest
 from datetime import date
  
 from books_app import app, db, bcrypt
-from books_app.models import Book, Author, User, Audience
+from books_app.models import Book, Author, User, Audience, Genre
 
 """
 Run these tests with the command:
@@ -125,7 +125,7 @@ class MainTests(unittest.TestCase):
         # and author's name
         response_text = response.get_data(as_text=True)
         self.assertIn('To Kill a Mockingbird', response_text)
-        self.assertIn('1967', response_text)
+        self.assertIn('1960', response_text)
         self.assertIn('Harper Lee', response_text)
 
         # TODO: Check that the response does NOT contain the 'Favorite' button
@@ -149,7 +149,7 @@ class MainTests(unittest.TestCase):
         # and author's name
         response_text = response.get_data(as_text=True)
         self.assertIn('To Kill a Mockingbird', response_text)
-        self.assertIn('1967', response_text)
+        self.assertIn('1960', response_text)
         self.assertIn('Harper Lee', response_text)
 
         # TODO: Check that the response contains the 'Favorite' button
@@ -219,6 +219,9 @@ class MainTests(unittest.TestCase):
     def test_create_author(self):
         """Test creating an author."""
         # TODO: Make a POST request to the /create_author route
+        create_user()
+        login(self.app, 'me1', 'password')
+
         post_data = {
             'name': "Bob",
             'biography': "Bob is cool"
@@ -226,6 +229,7 @@ class MainTests(unittest.TestCase):
         self.app.post('/create_author', data=post_data)
 
         # TODO: Verify that the author was updated in the database
+        
         author = Author.query.filter_by(name="Bob").one()
         self.assertIsNotNone(author)
         self.assertEqual(author.name, "Bob")
@@ -233,6 +237,9 @@ class MainTests(unittest.TestCase):
 
     def test_create_genre(self):
         # TODO: Make a POST request to the /create_genre route, 
+        create_user()
+        login(self.app, 'me1', 'password')
+
         post_data = {
             "name": "Thriller"
         }
@@ -244,53 +251,47 @@ class MainTests(unittest.TestCase):
         self.assertEqual(created_genre.name, "Thriller")
 
     def test_profile_page(self):
-        # TODO: Make a GET request to the /profile/1 route
+        # TODO: Make a GET request to the /profile/<username> route
+        create_books()
         create_user()
-        response = self.app.get('/profile/{1}', follow_redirects=True)
+        response = self.app.get('/profile/me1', follow_redirects=True)
         self.assertEqual(response.status_code, 200)
 
         # TODO: Verify that the response shows the appropriate user info
         response_text = response.get_data(as_text=True)
-        self.assertIn('Welcome to aaa\'s profile.', response_text)
-        self.assertIn('aaa\'s favorite books are:', response_text)
-        self.assertIn('To Kill a Mockingbird', response_text)
+        self.assertIn('me1', response_text)
+        
 
         
 
     def test_favorite_book(self):
         # TODO: Login as the user me1
-        create_book()
+        create_books()
         create_user()
         login(self.app, 'me1', 'password')
 
         # TODO: Make a POST request to the /favorite/1 route
-        post_data = {
-            'book': user.favorite_books
-        }
-        self.app.post('/favorite/{1}', data=post_data)
+        self.app.post('/favorite/1')
 
         # TODO: Verify that the book with id 1 was added to the user's favorites
-        create_book = Book.query.filter_by(id=1).one()
-        self.assertIsNotNone(created_genre)
-        # self.assertEqual(created_book.title, "")
+        user = User.query.get(1)
+        book = Book.query.get(1)
+        self.assertIn(book, user.favorite_books)
 
-        pass
 
     def test_unfavorite_book(self):
         # TODO: Login as the user me1, and add book with id 1 to me1's favorites
-        create_book()
+        create_books()
         create_user()
         login(self.app, 'me1', 'password')
+        self.app.post('/favorite/1')
 
         # TODO: Make a POST request to the /unfavorite/1 route
-        post_data = {
-            'book': user.favorite_books
-        }
-        self.app.post('/unfavorite/{1}', data=post_data)
+        self.app.post('/unfavorite/1')
 
         # TODO: Verify that the book with id 1 was removed from the user's 
         # favorites
-        create_book = Book.query.filter_by(id=1).one()
-        self.assertIsNone(created_genre)
+        user = User.query.get(1)
+        book = Book.query.get(1)
+        self.assertNotIn(book, user.favorite_books)
 
-        pass
